@@ -22,12 +22,15 @@ const dmPort int = 2243
 
 func (room *LiveRoom) Start(ctx context.Context) {
 	if err := room.init(); err != nil {
+		log.Printf("房间%d获取信息失败", room.RoomID)
 		log.Panic(err)
 	}
 	conn, err := room.createConnect()
 	if err != nil {
+		log.Printf("房间%d创建链接失败", room.RoomID)
 		log.Panic(err)
 	}
+	log.Printf("房间%d初始化成功", room.RoomID)
 	room.conn = <-conn
 	room.chBuffer = make(chan *bufferInfo, 1000)
 	room.chMsg = make(chan *MsgModel, 1000)
@@ -142,6 +145,9 @@ func (room *LiveRoom) distribute(ctx context.Context) {
 			return
 		case value := <-room.chMsg:
 			if room.ReceiveMsg != nil {
+				if value.Level > 0 {
+					continue
+				}
 				go room.ReceiveMsg(value)
 			}
 		}

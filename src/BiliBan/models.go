@@ -49,6 +49,7 @@ type CheckCenter struct {
 	banFilter   []func(center *CheckCenter, model *MsgModel) bool
 	replaceMap  map[rune]rune
 	//私有属性
+	preDel    sync.Map
 	passTime  int //统计窗口大小
 	minLength int //最小字符串长度
 	danmuIn   int //弹幕入库数

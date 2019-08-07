@@ -86,3 +86,6 @@ func Min2(base float32, args ...float32) float32 {
 	}
 	return base
 }
+func GetPopular(max int) (gjson.Result, error) {
+	return httpGetJsonWhitCheck("https://api.live.bilibili.com/room/v1/Area/getListByAreaID?areaId=0&sort=online&pageSize=" + strconv.Itoa(max) + "&page=1")
+}

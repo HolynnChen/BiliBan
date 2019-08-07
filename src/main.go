@@ -22,12 +22,18 @@ func main() {
 				Limit:      float32(0.75),
 			},
 		})
-	liveRoom := &BiliBan.LiveRoom{
-		RoomID: 5050,
-		ReceiveMsg: func(model *BiliBan.MsgModel) {
-			msgIn <- model
-		},
+	PopularList, err := BiliBan.GetPopular(100)
+	if err != nil {
+		log.Panic("丢失视野")
+	}
+	for _, roomId := range PopularList.Get("data.#.roomid").Array() {
+		liveRoom := &BiliBan.LiveRoom{
+			RoomID: roomId.Uint(),
+			ReceiveMsg: func(model *BiliBan.MsgModel) {
+				msgIn <- model
+			},
+		}
+		go liveRoom.Start(baseCtx)
 	}
 	checkCenter.Start()
-	liveRoom.Start(baseCtx)
 }

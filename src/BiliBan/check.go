@@ -34,7 +34,7 @@ func (center *CheckCenter) Start() {
 	for i, max := 0, runtime.NumCPU(); i < max; i++ {
 		go center.run()
 	}
-	go center.autoClean()
+	center.autoClean()
 }
 
 //运行函数
@@ -94,30 +94,64 @@ func (center *CheckCenter) autoClean() {
 }
 
 func (center *CheckCenter) ban(model *MsgModel) {
+	if _, ok := center.preDel.Load(model.UserID); ok {
+		return
+	}
+	center.preDel.Store(model.UserID, &struct{}{})
 	fmt.Println("封禁")
 	fmt.Println(model)
 }
 
 //判断函数区
 func Levenshtein(s1 *string, s2 *string) float32 {
-	rs1, rs2 := []rune(*s1), []rune(*s2)
-	r1, r2 := len(rs1), len(rs2)
-	dp := make([]int, r1+1, r1+1)
-	for i := 0; i <= r1; i++ {
-		dp[i] = i
+	r1, r2, result := utf8.RuneCountInString(*s1), utf8.RuneCountInString(*s2), ComputeDistance(*s1, *s2)
+	return Min2(1-float32(result)/float32(r1), 1-float32(result)/float32(r2))
+}
+func ComputeDistance(a, b string) int {
+	if len(a) == 0 {
+		return utf8.RuneCountInString(b)
 	}
-	for i := 1; i <= r2; i++ {
-		left, up := i, i-1
-		for j := 1; j <= r1; j++ {
-			cost := 1
-			if rs1[j-1] == rs2[i-1] {
-				cost = 0
+
+	if len(b) == 0 {
+		return utf8.RuneCountInString(a)
+	}
+
+	if a == b {
+		return 0
+	}
+	s1 := []rune(a)
+	s2 := []rune(b)
+
+	if len(s1) > len(s2) {
+		s1, s2 = s2, s1
+	}
+	lenS1 := len(s1)
+	lenS2 := len(s2)
+	x := make([]int, lenS1+1)
+	for i := 0; i < len(x); i++ {
+		x[i] = i
+	}
+	_ = x[lenS1]
+	for i := 1; i <= lenS2; i++ {
+		prev := i
+		var current int
+		for j := 1; j <= lenS1; j++ {
+			if s2[i-1] == s1[j-1] {
+				current = x[j-1] // match
+			} else {
+				current = min(min(x[j-1]+1, prev+1), x[j]+1)
 			}
-			left = Min(dp[j]+1, left+1, up+cost)
-			up = dp[j]
-			dp[j] = left
+			x[j-1] = prev
+			prev = current
 		}
+		x[lenS1] = prev
 	}
-	log.Println(*s1, *s2, dp[r1])
-	return Min2(1-float32(dp[r1])/float32(r1), 1-float32(dp[r1])/float32(r2))
+	return x[lenS1]
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
