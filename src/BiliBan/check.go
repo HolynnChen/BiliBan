@@ -118,6 +118,6 @@ func Levenshtein(s1 *string, s2 *string) float32 {
 			dp[j] = left
 		}
 	}
-	log.Println(*s1, *s2, Min2(1-float32(dp[r1])/float32(r1), 1-float32(dp[r1])/float32(r2)))
+	log.Println(*s1, *s2, dp[r1])
 	return Min2(1-float32(dp[r1])/float32(r1), 1-float32(dp[r1])/float32(r2))
 }

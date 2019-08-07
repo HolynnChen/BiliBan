@@ -1,7 +1,5 @@
 package BiliBan
 
-import "log"
-
 func Filter_theSameCode(center *CheckCenter, model *MsgModel) bool {
 	max, temp_map, strLen := 0, map[rune]int{}, 0
 	for _, ch := range model.Content {
@@ -20,7 +18,6 @@ func Filter_speed(center *CheckCenter, model *MsgModel) bool {
 		return false
 	}
 	msgList := userMSG.([]*MsgModel)
-	log.Println(msgList)
 	config := center.FuncConfig["BiliBan.Filter_speed"].(Filter_speed_config)
 	if len(msgList) > config.StartCheck {
 		var allCompare float32 = 0.0

@@ -167,6 +167,9 @@ func (room *LiveRoom) analysis(ctx context.Context) {
 				case "WELCOME":
 				case "WELCOME_GUARD":
 				case "DANMU_MSG":
+					if result.Get("info.0.9").Uint() == 1 {
+						continue
+					}
 					room.chMsg <- &MsgModel{
 						UserID:   result.Get("info.2.0").Uint(),
 						Level:    result.Get("info.4.0").Uint(),
@@ -174,7 +177,6 @@ func (room *LiveRoom) analysis(ctx context.Context) {
 						Content:  result.Get("info.1").String(),
 						Ct:       result.Get("info.9.ct").String(),
 						Time:     time.Now().Unix(),
-						Raw:      result.Raw,
 					}
 				case "SEND_GIFT":
 				case "COMBO_END":
@@ -182,7 +184,6 @@ func (room *LiveRoom) analysis(ctx context.Context) {
 				default:
 					// log.Println(result.Data)
 					// log.Println(string(buffer.Buffer))
-					break
 				}
 			default:
 				break

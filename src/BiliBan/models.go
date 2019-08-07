@@ -29,7 +29,6 @@ type MsgModel struct {
 	Content  string
 	Ct       string //useForBan
 	Time     int64
-	Raw      string
 }
 
 type bufferInfo struct {
