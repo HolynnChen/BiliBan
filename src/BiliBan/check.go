@@ -9,14 +9,14 @@ import (
 	"unicode/utf8"
 )
 
-func (center *CheckCenter) Init(passTime int, minLength int, passFilter FuncList, banFilter FuncList, FuncConfig map[string]interface{}) chan *MsgModel {
+func (center *CheckCenter) Init(passTime int, minLength int, passFilter FuncList, banFilter FuncList, FuncConfig *ConfigMap) chan *MsgModel {
 	fmt.Println("封禁中心初始化")
 	center.msgConn = make(chan *MsgModel, 10000)
 	//赋值给私有变量
 	center.passTime = passTime
 	center.minLength = minLength
 	center.danmuIn = 0
-	center.FuncConfig = FuncConfig
+	center.config = FuncConfig
 	center.passFilter = passFilter
 	center.banFilter = banFilter
 	center.replaceMap = map[rune]rune{}
@@ -47,11 +47,12 @@ func (center *CheckCenter) run() {
 	}
 }
 func (center *CheckCenter) check(msg *MsgModel) {
-	if utf8.RuneCountInString(msg.Content) >= center.minLength {
-		nowUserRecord, _ := center.DanmuRecord.LoadOrStore(msg.UserID, make([]*MsgModel, 0, 5))
-		nowUserRecord = append(nowUserRecord.([]*MsgModel), msg)
-		center.DanmuRecord.Store(msg.UserID, nowUserRecord)
+	if utf8.RuneCountInString(msg.Content) < center.minLength {
+		return
 	}
+	nowUserRecord, _ := center.DanmuRecord.LoadOrStore(msg.UserID, make([]*MsgModel, 0, 5))
+	nowUserRecord = append(nowUserRecord.([]*MsgModel), msg)
+	center.DanmuRecord.Store(msg.UserID, nowUserRecord)
 	center.clean(msg.UserID)
 	for _, function := range center.passFilter {
 		if function(center, msg) {

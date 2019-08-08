@@ -53,6 +53,8 @@ type CheckCenter struct {
 	passTime  int //统计窗口大小
 	minLength int //最小字符串长度
 	danmuIn   int //弹幕入库数
+
+	config *ConfigMap
 }
 type banRecord struct {
 	BanTime time.Time
@@ -62,4 +64,11 @@ type FuncList []func(center *CheckCenter, model *MsgModel) bool
 type Filter_speed_config struct {
 	StartCheck int
 	Limit      float32
+}
+type ConfigMap struct {
+	Filter_theSameCode_limit  float32
+	Filter_speed_StartCheck   int
+	Filter_speed_Limit        float32
+	Filter_checkModels_models []string
+	Filter_checkModels_limit  float32
 }
