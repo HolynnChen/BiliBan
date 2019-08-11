@@ -3,6 +3,7 @@ package BiliBan
 import (
 	"context"
 	"net"
+	"regexp"
 	"sync"
 	"time"
 )
@@ -11,6 +12,7 @@ type LiveRoom struct {
 	// 初始化属性
 	RoomID     uint64          //房间ID，可短ID
 	ReceiveMsg func(*MsgModel) //接受信息
+	Preparing  func(uint64)    //下播处理
 
 	// 私有属性
 	roomLongID uint64 //真ID
@@ -71,4 +73,10 @@ type ConfigMap struct {
 	Filter_speed_Limit        float32
 	Filter_checkModels_models []string
 	Filter_checkModels_limit  float32
+	Filter_checkModels_expend []*RegVal
+	Filter_checkRecent_limit  int
+}
+type RegVal struct {
+	Compiled *regexp.Regexp
+	Value    string
 }

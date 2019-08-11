@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	_ "net/http/pprof"
+	"regexp"
 )
 
 func main() {
@@ -14,26 +15,68 @@ func main() {
 	}()
 	baseCtx := context.Background()
 	checkCenter := &BiliBan.CheckCenter{}
-	msgIn := checkCenter.Init(20, 10, BiliBan.FuncList{BiliBan.Filter_theSameCode}, BiliBan.FuncList{BiliBan.Filter_speed, BiliBan.Filter_checkModels},
+	reg1, _ := regexp.Compile(`\d`)
+	reg2, _ := regexp.Compile(`[.|/\@~*&^ +-]`)
+	msgIn := checkCenter.Init(20, 10, BiliBan.FuncList{BiliBan.Filter_theSameCode}, BiliBan.FuncList{BiliBan.Filter_checkRecent, BiliBan.Filter_speed, BiliBan.Filter_checkModels},
 		&BiliBan.ConfigMap{
 			Filter_theSameCode_limit:  float32(0.45),
 			Filter_speed_StartCheck:   2,
 			Filter_speed_Limit:        float32(0.75),
 			Filter_checkModels_limit:  float32(0.75),
-			Filter_checkModels_models: []string{"##o######汝逼q-", "####o#####逼q#", "##########曰汝σ#", "###oo####曰汝q", "########汝色σ", "寂寞十qq:##########", "########叭#姐姐", "######➏##幼籹", "########∃∃萝莉q", "э#########學嫂q", "#э########妹水+q"},
+			Filter_checkModels_models: []string{},
+			Filter_checkModels_expend: []*BiliBan.RegVal{&BiliBan.RegVal{Compiled: reg1, Value: "#"}, &BiliBan.RegVal{Compiled: reg2, Value: ""}},
+			Filter_checkRecent_limit:  5,
 		})
-	PopularList, err := BiliBan.GetPopular(300)
+	//创建热门房间
+	PopularList, err := BiliBan.GetPopular(500)
 	if err != nil {
 		log.Panic("丢失视野")
 	}
-	for _, roomId := range PopularList.Get("data.#.roomid").Array() {
-		liveRoom := &BiliBan.LiveRoom{
-			RoomID: roomId.Uint(),
-			ReceiveMsg: func(model *BiliBan.MsgModel) {
-				msgIn <- model
-			},
-		}
-		go liveRoom.Start(baseCtx)
+	RoomRaw := PopularList.Get("data.#.roomid").Array()
+	RoomList := BiliBan.AllToUnit(&RoomRaw)
+	RoomCover := make(chan uint64, 10)
+	for _, roomId := range *RoomList {
+		enterRoom(&baseCtx, roomId, &msgIn, &RoomCover)
 	}
+	//房间切换
+	go func() {
+		for {
+			select {
+			case roomId := <-RoomCover:
+
+				oldRooms := BiliBan.UnitToMap(BiliBan.AllToUnit(&RoomRaw))
+				PopularList, err := BiliBan.GetPopular(500)
+				if err != nil {
+					log.Panic("丢失视野")
+				}
+				RoomRaw := PopularList.Get("data.#.roomid").Array()
+				newRoomList := BiliBan.AllToUnit(&RoomRaw)
+				for _, value := range *newRoomList {
+					if value == roomId {
+						continue
+					}
+					if _, exits := (*oldRooms)[value]; !exits {
+						enterRoom(&baseCtx, value, &msgIn, &RoomCover)
+						log.Printf("自动切换房间，原房间%d，当前房间%d", roomId, value)
+						return
+					}
+				}
+			}
+		}
+	}()
+	//开始执行
 	checkCenter.Start()
+}
+
+func enterRoom(baseCtx *context.Context, RoomID uint64, msgIn *chan *BiliBan.MsgModel, RoomCover *chan uint64) {
+	liveRoom := &BiliBan.LiveRoom{
+		RoomID: RoomID,
+		ReceiveMsg: func(model *BiliBan.MsgModel) {
+			*msgIn <- model
+		},
+		Preparing: func(RoomID uint64) {
+			*RoomCover <- RoomID
+		},
+	}
+	go liveRoom.Start(*baseCtx)
 }

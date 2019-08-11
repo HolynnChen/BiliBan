@@ -89,3 +89,20 @@ func Min2(base float32, args ...float32) float32 {
 func GetPopular(max int) (gjson.Result, error) {
 	return httpGetJsonWhitCheck("https://api.live.bilibili.com/room/v1/Area/getListByAreaID?areaId=0&sort=online&pageSize=" + strconv.Itoa(max) + "&page=1")
 }
+func ReadConfig() {
+	return
+}
+func AllToUnit(in *[]gjson.Result) *[]uint64 {
+	result := make([]uint64, 0, len(*in))
+	for _, value := range *in {
+		result = append(result, value.Uint())
+	}
+	return &result
+}
+func UnitToMap(in *[]uint64) *map[uint64]*struct{} {
+	newMap := map[uint64]*struct{}{}
+	for _, value := range *in {
+		newMap[value] = &struct{}{}
+	}
+	return &newMap
+}

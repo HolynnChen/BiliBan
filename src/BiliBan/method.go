@@ -1,5 +1,7 @@
 package BiliBan
 
+import "log"
+
 func Filter_theSameCode(center *CheckCenter, model *MsgModel) bool {
 	max, tempMap, strLen := 0, map[rune]int{}, 0
 	for _, ch := range model.Content {
@@ -53,13 +55,33 @@ func (center *CheckCenter) DanmuTransform(s *string) string {
 			runeArray[index] = '#'
 		}
 	}
-	return string(runeArray)
+	result := string(runeArray)
+	for _, regVal := range center.config.Filter_checkModels_expend {
+		result = regVal.Compiled.ReplaceAllString(result, regVal.Value)
+	}
+	return result
 }
 
 func Filter_checkModels(center *CheckCenter, model *MsgModel) bool {
 	toCheck := center.DanmuTransform(&model.Content)
 	for _, model := range center.config.Filter_checkModels_models {
 		if Levenshtein(&model, &toCheck) > center.config.Filter_checkModels_limit {
+			return true
+		}
+	}
+	return false
+}
+
+func Filter_checkRecent(center *CheckCenter, model *MsgModel) bool {
+	toCheck := center.DanmuTransform(&model.Content)
+	num := len(center.BanRecords)
+	for i, times := num-1, 0; i > num-1-center.config.Filter_checkRecent_limit && i > -1; i-- {
+		waitCheck := center.DanmuTransform(&center.BanRecords[i].Content)
+		if Levenshtein(&toCheck, &waitCheck) > 0.9 {
+			times++
+		}
+		if times > 1 {
+			log.Println("窗口匹配成功")
 			return true
 		}
 	}

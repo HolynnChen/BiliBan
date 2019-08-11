@@ -170,6 +170,7 @@ func (room *LiveRoom) analysis(ctx context.Context) {
 				cmd := result.Get("cmd").String()
 				switch cmd {
 				case "PREPARING": //下播处理
+					room.Preparing(room.RoomID)
 				case "WELCOME":
 				case "WELCOME_GUARD":
 				case "DANMU_MSG":
