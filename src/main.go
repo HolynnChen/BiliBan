@@ -29,7 +29,7 @@ func main() {
 			Filter_checkRecent_length: 5,
 		})
 	//创建热门房间
-	PopularList, err := BiliBan.GetPopular(500)
+	PopularList, err := BiliBan.GetPopular(1000)
 	if err != nil {
 		log.Panic("丢失视野")
 	}
@@ -57,13 +57,13 @@ func main() {
 				if len(waitToChange) == 0 {
 					continue
 				}
-				log.Println("尝试补充房间")
+				log.Printf("尝试补充房间，有%d个房间需要补充\n", len(waitToChange))
 				oldRooms := BiliBan.UnitToMap(BiliBan.AllToUnit(&RoomRaw))
-				PopularList, err := BiliBan.GetPopular(300)
+				PopularList, err = BiliBan.GetPopular(500)
 				if err != nil {
 					log.Panic("丢失视野")
 				}
-				RoomRaw := PopularList.Get("data.#.roomid").Array()
+				RoomRaw = PopularList.Get("data.#.roomid").Array()
 				newRoomList := BiliBan.AllToUnit(&RoomRaw)
 				for _, value := range *newRoomList {
 					if BiliBan.InUint64Array(&waitToChange, value) {
@@ -75,7 +75,7 @@ func main() {
 						waitToChange = waitToChange[1:]
 						log.Printf("自动切换房间，原房间%d，当前房间%d", pop, value)
 						if len(waitToChange) == 0 {
-							return
+							break
 						}
 					}
 				}

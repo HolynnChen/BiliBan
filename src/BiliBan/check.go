@@ -47,6 +47,9 @@ func (center *CheckCenter) run() {
 	}
 }
 func (center *CheckCenter) check(msg *MsgModel) {
+	if _, ok := center.preDel.Load(msg.UserID); ok {
+		return
+	}
 	if utf8.RuneCountInString(msg.Content) < center.minLength {
 		return
 	}
@@ -62,6 +65,7 @@ func (center *CheckCenter) check(msg *MsgModel) {
 	for _, function := range center.banFilter {
 		if function(center, msg) {
 			center.ban(msg)
+			return
 		}
 	}
 
@@ -95,9 +99,6 @@ func (center *CheckCenter) autoClean() {
 }
 
 func (center *CheckCenter) ban(model *MsgModel) {
-	if _, ok := center.preDel.Load(model.UserID); ok {
-		return
-	}
 	center.preDel.Store(model.UserID, &struct{}{})
 	fmt.Println("封禁")
 	fmt.Println(model)
