@@ -106,3 +106,11 @@ func UnitToMap(in *[]uint64) *map[uint64]*struct{} {
 	}
 	return &newMap
 }
+func InUint64Array(arr *[]uint64, value uint64) bool {
+	for _, ArrValue := range *arr {
+		if ArrValue == value {
+			return true
+		}
+	}
+	return false
+}

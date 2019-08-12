@@ -5,7 +5,6 @@ import (
 	"net"
 	"regexp"
 	"sync"
-	"time"
 )
 
 type LiveRoom struct {
@@ -59,7 +58,7 @@ type CheckCenter struct {
 	config *ConfigMap
 }
 type banRecord struct {
-	BanTime time.Time
+	BanTime int64
 	*MsgModel
 }
 type FuncList []func(center *CheckCenter, model *MsgModel) bool
@@ -74,7 +73,8 @@ type ConfigMap struct {
 	Filter_checkModels_models []string
 	Filter_checkModels_limit  float32
 	Filter_checkModels_expend []*RegVal
-	Filter_checkRecent_limit  int
+	Filter_checkRecent_length int
+	Filter_checkRecent_limit  float32
 }
 type RegVal struct {
 	Compiled *regexp.Regexp

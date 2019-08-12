@@ -75,9 +75,9 @@ func Filter_checkModels(center *CheckCenter, model *MsgModel) bool {
 func Filter_checkRecent(center *CheckCenter, model *MsgModel) bool {
 	toCheck := center.DanmuTransform(&model.Content)
 	num := len(center.BanRecords)
-	for i, times := num-1, 0; i > num-1-center.config.Filter_checkRecent_limit && i > -1; i-- {
+	for i, times := num-1, 0; i > num-1-center.config.Filter_checkRecent_length && i > -1; i-- {
 		waitCheck := center.DanmuTransform(&center.BanRecords[i].Content)
-		if Levenshtein(&toCheck, &waitCheck) > 0.9 {
+		if Levenshtein(&toCheck, &waitCheck) > center.config.Filter_checkRecent_limit {
 			times++
 		}
 		if times > 1 {

@@ -40,7 +40,7 @@ func (room *LiveRoom) Start(ctx context.Context) {
 	go room.distribute(room.ctx)
 	room.enterRoom()
 	go room.heartBeat(room.ctx)
-	room.receive()
+	room.receive(room.ctx)
 }
 func (room *LiveRoom) init() error {
 	resRoom, err := httpGetJsonWhitCheck(roomInfoURL + strconv.FormatUint(room.RoomID, 10))
@@ -97,14 +97,20 @@ func (room *LiveRoom) enterRoom() {
 	}
 	room.sendData(7, payload)
 }
-func (room *LiveRoom) receive() {
+func (room *LiveRoom) receive(ctx context.Context) {
 	for {
 		// 包头总长16个字节,包括 数据包长(4),magic(2),protocol_version(2),typeid(4),params(4)
 		headBuffer := make([]byte, 16)
 		_, err := io.ReadFull(room.conn, headBuffer)
 		if err != nil {
 			//log.Panicln(err)
-			log.Println("出现故障，尝试自动恢复")
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(3 * time.Second):
+			}
+			log.Printf("房间%d出现故障，尝试自动恢复\n", room.RoomID)
+			log.Println(err)
 			conn, err := room.createConnect()
 			if err != nil {
 				log.Panic(err)
@@ -142,6 +148,7 @@ func (room *LiveRoom) distribute(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			log.Printf("房间%d分发停止\n", room.RoomID)
 			return
 		case value := <-room.chMsg:
 			if room.ReceiveMsg != nil {
@@ -157,6 +164,7 @@ func (room *LiveRoom) analysis(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			log.Printf("房间%d分析停止\n", room.RoomID)
 			return
 		case buffer := <-room.chBuffer:
 			switch buffer.TypeID {
@@ -170,7 +178,9 @@ func (room *LiveRoom) analysis(ctx context.Context) {
 				cmd := result.Get("cmd").String()
 				switch cmd {
 				case "PREPARING": //下播处理
+					log.Printf("房间%d下播\n", room.RoomID)
 					room.Preparing(room.RoomID)
+					room.close()
 				case "WELCOME":
 				case "WELCOME_GUARD":
 				case "DANMU_MSG":
@@ -199,14 +209,18 @@ func (room *LiveRoom) analysis(ctx context.Context) {
 	}
 }
 func (room *LiveRoom) heartBeat(ctx context.Context) {
+	room.sendData(2, []byte{})
 	for {
 		select {
 		case <-ctx.Done():
+			log.Printf("房间%d心跳停止\n", room.RoomID)
 			return
-		default:
+		case <-time.After(30 * time.Second):
+			room.sendData(2, []byte{})
 		}
-
-		room.sendData(2, []byte{})
-		time.Sleep(30 * time.Second)
 	}
+}
+func (room *LiveRoom) close() {
+	room.cancel()
+	_ = room.conn.Close()
 }

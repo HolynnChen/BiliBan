@@ -101,6 +101,10 @@ func (center *CheckCenter) ban(model *MsgModel) {
 	center.preDel.Store(model.UserID, &struct{}{})
 	fmt.Println("封禁")
 	fmt.Println(model)
+	center.BanRecords = append(center.BanRecords, banRecord{
+		BanTime:  time.Now().Unix(),
+		MsgModel: model,
+	})
 }
 
 //判断函数区

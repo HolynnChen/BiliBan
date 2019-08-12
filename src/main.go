@@ -4,15 +4,15 @@ import (
 	"BiliBan/src/BiliBan"
 	"context"
 	"log"
-	"net/http"
 	_ "net/http/pprof"
 	"regexp"
+	"time"
 )
 
 func main() {
-	go func() {
-		log.Println(http.ListenAndServe("localhost:8080", nil))
-	}()
+	//go func() {
+	//	log.Println(http.ListenAndServe("localhost:8080", nil))
+	//}()
 	baseCtx := context.Background()
 	checkCenter := &BiliBan.CheckCenter{}
 	reg1, _ := regexp.Compile(`\d`)
@@ -25,7 +25,8 @@ func main() {
 			Filter_checkModels_limit:  float32(0.75),
 			Filter_checkModels_models: []string{},
 			Filter_checkModels_expend: []*BiliBan.RegVal{&BiliBan.RegVal{Compiled: reg1, Value: "#"}, &BiliBan.RegVal{Compiled: reg2, Value: ""}},
-			Filter_checkRecent_limit:  5,
+			Filter_checkRecent_limit:  0.9,
+			Filter_checkRecent_length: 5,
 		})
 	//创建热门房间
 	PopularList, err := BiliBan.GetPopular(500)
@@ -39,26 +40,43 @@ func main() {
 		enterRoom(&baseCtx, roomId, &msgIn, &RoomCover)
 	}
 	//房间切换
+	var waitToChange []uint64
 	go func() {
 		for {
 			select {
 			case roomId := <-RoomCover:
-
+				log.Println("进入等待列表")
+				waitToChange = append(waitToChange, roomId)
+			}
+		}
+	}()
+	go func() {
+		for {
+			select {
+			case <-time.After(30 * time.Second):
+				if len(waitToChange) == 0 {
+					continue
+				}
+				log.Println("尝试补充房间")
 				oldRooms := BiliBan.UnitToMap(BiliBan.AllToUnit(&RoomRaw))
-				PopularList, err := BiliBan.GetPopular(500)
+				PopularList, err := BiliBan.GetPopular(300)
 				if err != nil {
 					log.Panic("丢失视野")
 				}
 				RoomRaw := PopularList.Get("data.#.roomid").Array()
 				newRoomList := BiliBan.AllToUnit(&RoomRaw)
 				for _, value := range *newRoomList {
-					if value == roomId {
+					if BiliBan.InUint64Array(&waitToChange, value) {
 						continue
 					}
 					if _, exits := (*oldRooms)[value]; !exits {
 						enterRoom(&baseCtx, value, &msgIn, &RoomCover)
-						log.Printf("自动切换房间，原房间%d，当前房间%d", roomId, value)
-						return
+						pop := waitToChange[0]
+						waitToChange = waitToChange[1:]
+						log.Printf("自动切换房间，原房间%d，当前房间%d", pop, value)
+						if len(waitToChange) == 0 {
+							return
+						}
 					}
 				}
 			}
