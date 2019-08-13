@@ -67,14 +67,16 @@ type Filter_speed_config struct {
 	Limit      float32
 }
 type ConfigMap struct {
-	Filter_theSameCode_limit  float32
-	Filter_speed_StartCheck   int
-	Filter_speed_Limit        float32
-	Filter_checkModels_models []string
-	Filter_checkModels_limit  float32
-	Filter_checkModels_expend []*RegVal
-	Filter_checkRecent_length int
-	Filter_checkRecent_limit  float32
+	Filter_theSameCode_limit    float32
+	Filter_speed_StartCheck     int
+	Filter_speed_Limit          float32
+	Filter_checkModels_models   []string
+	Filter_checkModels_limit    float32
+	Filter_checkModels_expend   []*RegVal
+	Filter_checkRecent_length   int
+	Filter_checkRecent_limit    float32
+	Filter_checkRecent_passtime int64
+	Filter_keyword              []string
 }
 type RegVal struct {
 	Compiled *regexp.Regexp

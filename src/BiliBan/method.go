@@ -1,6 +1,10 @@
 package BiliBan
 
-import "log"
+import (
+	"log"
+	"strings"
+	"time"
+)
 
 func Filter_theSameCode(center *CheckCenter, model *MsgModel) bool {
 	max, tempMap, strLen := 0, map[rune]int{}, 0
@@ -76,12 +80,23 @@ func Filter_checkRecent(center *CheckCenter, model *MsgModel) bool {
 	toCheck := center.DanmuTransform(&model.Content)
 	num := len(center.BanRecords)
 	for i, times := num-1, 0; i > num-1-center.config.Filter_checkRecent_length && i > -1; i-- {
+		if time.Now().Unix()-center.BanRecords[i].BanTime > center.config.Filter_checkRecent_passtime {
+			return false
+		}
 		waitCheck := center.DanmuTransform(&center.BanRecords[i].Content)
 		if Levenshtein(&toCheck, &waitCheck) > center.config.Filter_checkRecent_limit {
 			times++
 		}
 		if times > 1 {
 			log.Println("窗口匹配成功")
+			return true
+		}
+	}
+	return false
+}
+func Filter_keyword(center *CheckCenter, model *MsgModel) bool {
+	for i := 0; i < len(center.config.Filter_keyword); i++ {
+		if strings.Contains(model.Content, center.config.Filter_keyword[i]) {
 			return true
 		}
 	}

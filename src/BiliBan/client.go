@@ -123,13 +123,9 @@ func (room *LiveRoom) receive(ctx context.Context) {
 		if packetLength < 16 || packetLength > 3072 {
 			log.Println("***************协议失败***************")
 			log.Println("数据包长度:", packetLength)
-			conn, err := room.createConnect()
-			if err != nil {
-				log.Panic(err)
-			}
-			room.conn = <-conn
-			room.enterRoom()
-			continue
+			room.Preparing(room.RoomID)
+			room.close()
+			return
 		}
 		typeID := binary.BigEndian.Uint32(headBuffer[8:12]) // 读取typeid
 		payLoadLength := packetLength - 16
@@ -139,6 +135,11 @@ func (room *LiveRoom) receive(ctx context.Context) {
 		payloadBuffer := make([]byte, payLoadLength)
 		_, err = io.ReadFull(room.conn, payloadBuffer)
 		if err != nil {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(3 * time.Second):
+			}
 			log.Panicln(err)
 		}
 		room.chBuffer <- &bufferInfo{TypeID: typeID, Buffer: payloadBuffer}

@@ -15,21 +15,24 @@ func main() {
 	//}()
 	baseCtx := context.Background()
 	checkCenter := &BiliBan.CheckCenter{}
+	roomMax := 800
 	reg1, _ := regexp.Compile(`\d`)
 	reg2, _ := regexp.Compile(`[.|/\@~*&^ +-]`)
-	msgIn := checkCenter.Init(20, 10, BiliBan.FuncList{BiliBan.Filter_theSameCode}, BiliBan.FuncList{BiliBan.Filter_checkRecent, BiliBan.Filter_speed, BiliBan.Filter_checkModels},
+	msgIn := checkCenter.Init(20, 10, BiliBan.FuncList{BiliBan.Filter_keyword, BiliBan.Filter_theSameCode}, BiliBan.FuncList{BiliBan.Filter_checkRecent, BiliBan.Filter_speed, BiliBan.Filter_checkModels},
 		&BiliBan.ConfigMap{
-			Filter_theSameCode_limit:  float32(0.45),
-			Filter_speed_StartCheck:   2,
-			Filter_speed_Limit:        float32(0.75),
-			Filter_checkModels_limit:  float32(0.75),
-			Filter_checkModels_models: []string{},
-			Filter_checkModels_expend: []*BiliBan.RegVal{&BiliBan.RegVal{Compiled: reg1, Value: "#"}, &BiliBan.RegVal{Compiled: reg2, Value: ""}},
-			Filter_checkRecent_limit:  0.9,
-			Filter_checkRecent_length: 5,
+			Filter_theSameCode_limit:    float32(0.45),
+			Filter_speed_StartCheck:     2,
+			Filter_speed_Limit:          float32(0.75),
+			Filter_checkModels_limit:    float32(0.75),
+			Filter_checkModels_models:   []string{},
+			Filter_checkModels_expend:   []*BiliBan.RegVal{&BiliBan.RegVal{Compiled: reg1, Value: "#"}, &BiliBan.RegVal{Compiled: reg2, Value: ""}},
+			Filter_checkRecent_limit:    0.9,
+			Filter_checkRecent_length:   5,
+			Filter_checkRecent_passtime: 60,
+			Filter_keyword:              []string{"哔哩哔哩", "和你相遇"},
 		})
 	//创建热门房间
-	PopularList, err := BiliBan.GetPopular(1000)
+	PopularList, err := BiliBan.GetPopular(roomMax)
 	if err != nil {
 		log.Panic("丢失视野")
 	}
@@ -53,13 +56,13 @@ func main() {
 	go func() {
 		for {
 			select {
-			case <-time.After(30 * time.Second):
+			case <-time.After(5 * time.Minute):
 				if len(waitToChange) == 0 {
 					continue
 				}
 				log.Printf("尝试补充房间，有%d个房间需要补充\n", len(waitToChange))
 				oldRooms := BiliBan.UnitToMap(BiliBan.AllToUnit(&RoomRaw))
-				PopularList, err = BiliBan.GetPopular(500)
+				PopularList, err = BiliBan.GetPopular(roomMax)
 				if err != nil {
 					log.Panic("丢失视野")
 				}
